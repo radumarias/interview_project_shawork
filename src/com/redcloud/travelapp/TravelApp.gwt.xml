@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE module PUBLIC "-//Google Inc.//DTD Google Web Toolkit 2.7.0//EN"
+  "http://gwtproject.org/doctype/2.7.0/gwt-module.dtd">
+<module rename-to='travelapp'>
+  <inherits name='com.google.gwt.user.User'/>
+  <inherits name='com.google.gwt.user.theme.clean.Clean'/>
+  <inherits name='com.google.gwt.maps.Maps'/>
+  <inherits name="com.google.gwt.json.JSON" />
+  
+  <entry-point class='com.redcloud.travelapp.client.TravelApp'/>
+	
+  <source path='client'/>
+  <source path='shared'/>
+
+  <add-linker name="xsiframe"/>
+</module>
