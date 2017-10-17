@@ -28,7 +28,5 @@ public class GuiceListener extends GuiceServletContextListener {
 
 class JpaInitializer {
 	@Inject
-	public JpaInitializer(PersistService persistService) {
-		persistService.start();
-	}
+	public JpaInitializer(PersistService persistService) {}
 }
