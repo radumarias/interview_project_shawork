@@ -161,7 +161,8 @@ public class TravelApp implements EntryPoint {
 							String resultStr = result.getName() + "<br/>" + "<a href=\"" + result.getWebsite()
 									+ "\" /> Website </a><br/>"
 							// result.getIcon() +
-									+ "(Reviews : " + result.getReviewStr() + ") " + result.getRating();
+							//		+ "(Reviews : " + result.getReviewStr() + ") " 
+							+ result.getReviewStr() + " " + result.getRating();
 
 							VerticalPanel vpanel = new VerticalPanel();
 							String imageIcon = result.getIcon();
@@ -206,12 +207,12 @@ public class TravelApp implements EntryPoint {
 	 */
 	private void updateValues(final String searchCity, String placeID, String newRate, boolean mustSee) {
 		String mustSeeStr = mustSee ? "Y" : "N";
-		myTravelAppService.updateValues(searchCity, placeID, newRate, mustSeeStr, new AsyncCallback<String>() {
+		myTravelAppService.updateValues(placeID, newRate, mustSeeStr, new AsyncCallback<String>() {
 			public void onFailure(Throwable caught) {
 				//Window.alert("Error while Updating values..");
 			}
 			public void onSuccess(String str) {
-				//Window.alert("Success Saving Values");
+				Window.alert("Success Saving Values");
 				displayPlacesInfo(searchCity);
 			}
 		});
@@ -223,12 +224,12 @@ public class TravelApp implements EntryPoint {
 	 * @param placeID
 	 */
 	private void removePlace(final String searchCity, String placeID) {
-		myTravelAppService.removePlace(searchCity, placeID, new AsyncCallback<String>() {
+		myTravelAppService.removePlace(placeID, new AsyncCallback<String>() {
 			public void onFailure(Throwable caught) {
 				//Window.alert("Error while Removing Place..");
 			}
 			public void onSuccess(String str) {
-				//Window.alert("Success Removing Place");
+				Window.alert("Success Removing Place");
 				displayPlacesInfo(searchCity);
 			}
 		});
@@ -266,7 +267,7 @@ public class TravelApp implements EntryPoint {
 	 * @param result
 	 * @return
 	 */
-	private PlaceDBResult convertToDBR(PlaceResult result) {
+	private PlaceDBResult convertToDBR(PlaceResult result, String searchString) {
 		PlaceDBResult pdrb = new PlaceDBResult();
 		try {
 			pdrb.setIdstr(result.getId());
@@ -277,6 +278,7 @@ public class TravelApp implements EntryPoint {
 			pdrb.setReviewStr(result.getReviews() == null ? "(Reviews : " + "0" + ") "
 					: "(Reviews : " + result.getReviews().length() + ") ");
 			pdrb.setWebsite(result.getWebsite() == null ? "" : result.getWebsite().trim());
+			pdrb.setSearchcity(searchString);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -320,7 +322,7 @@ public class TravelApp implements EntryPoint {
 							String json = new JSONObject(result).toString();
 							GWT.log("details=" + json);
 							try {
-								dbResults.add(convertToDBR(result));
+								dbResults.add(convertToDBR(result,searchCityStr));
 							} catch (Exception e) {
 								e.printStackTrace();
 							}
@@ -328,7 +330,7 @@ public class TravelApp implements EntryPoint {
 
 						// Persist to DB - creation
 						System.out.println("Persisting to DB");
-						myTravelAppService.saveDBData(searchCityStr, dbResults, new AsyncCallback<String>() {
+						myTravelAppService.saveDBData(dbResults, new AsyncCallback<String>() {
 							public void onFailure(Throwable caught) {
 								System.out.println("Error saving to DB");
 							}

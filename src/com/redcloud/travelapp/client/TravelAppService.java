@@ -13,11 +13,23 @@ import com.redcloud.travelapp.shared.PlaceDBResult;
 public interface TravelAppService extends RemoteService {
 	String login(String name, String password) throws IllegalArgumentException;
 
+	/**
+	 * Fetches Places data from DB for given Search city
+	 */
 	List<PlaceDBResult> fetchDBData(String searchCity) throws IllegalArgumentException;
 
-	String saveDBData(String searchCity, List<PlaceDBResult> dbResults) throws IllegalArgumentException;
+	/**
+	 * Saves the Places DB data to Database 
+	 */
+	String saveDBData(List<PlaceDBResult> dbResults) throws IllegalArgumentException;
 
-	String updateValues(String searchCity, String placeID, String newRate, String mustSee) throws IllegalArgumentException;
+	/**
+	 * Updates user action on Places
+	 */
+	String updateValues(String placeID, String newRate, String mustSee) throws IllegalArgumentException;
 
-	String removePlace(String searchCity, String placeID) throws IllegalArgumentException;
+	/**
+	 * Removes Place from DB for further listing
+	 */
+	String removePlace(String placeID) throws IllegalArgumentException;
 }
