@@ -20,63 +20,114 @@ public class PlacesServiceImpl implements PlacesService {
 	@Inject
 	private EntityManager entityManager;
 	
+	@Inject
+    public PlacesServiceImpl(EntityManager entityManager) {
+		this.entityManager = entityManager;
+    }
+	
 	/**
-	 * Fetches the Data of Places based on Search City
+	 * Fetches the DB data of Places based on Search city
 	 */
 	@Override
 	@Transactional
 	public List<PlaceDBResult> fetchDBData(String searchCity) throws IllegalArgumentException {
-		String query = "FROM places WHERE searchcity=:searchcity";
-		List<PlacesDB> dbResults = (List<PlacesDB>)entityManager.createQuery(query)
-				.setParameter("searchcity", searchCity).getResultList();
-		List<PlaceDBResult> results = convertDBObjs(dbResults);
-		return results;
+		try {
+			searchCity = searchCity.replaceAll(",", " ");
+		} catch(Exception e) {
+			
+		}
+		try {
+			String query = "FROM PlacesDB WHERE searchcity=:searchcity";
+			List<PlacesDB> dbResults = (List<PlacesDB>)entityManager.createQuery(query)
+					.setParameter("searchcity", searchCity).getResultList();
+			List<PlaceDBResult> results = convertDBObjs(dbResults);
+			return results;
+		} catch(Exception e) {
+			e.printStackTrace();
+			return null;
+		}
 	}
 
 	/**
-	 * Saves the data of Places Info per Search City
+	 * Saves to DB the data of the Places
 	 */
 	@Override
 	@Transactional
-	public String saveDBData(String searchCity, List<PlaceDBResult> dbResults) throws IllegalArgumentException {
-		List<PlacesDB> results = convertObjDBs(dbResults, searchCity);
+	public String saveDBData(List<PlaceDBResult> dbResults) throws IllegalArgumentException {
+		List<PlacesDB> results = convertObjDBs(dbResults);
+		entityManager.getTransaction().begin();
 		for(PlacesDB result : results) {
-			entityManager.persist(result);
+			try {
+				entityManager.persist(result);
+			} catch(Exception e) {
+				e.printStackTrace();
+			}
 		}
+		entityManager.flush();
+		entityManager.getTransaction().commit();
 		return "";
 	}
 
 	/**
-	 * JPA - Update Values for given SearchCity - PlaceID
+	 * Updates the value for the Place
 	 */
 	@Override
 	@Transactional
-	public String updateValues(String searchCity, String placeID, String newRate, String mustSee)
+	public String updateValues(//String searchCity, 
+			String placeID, String newRate, String mustSee)
 			throws IllegalArgumentException {
-		String query = "FROM places WHERE searchcity=:searchcity and idstr=:idstr";
-		PlacesDB place = (PlacesDB) entityManager.createQuery(query).setParameter("searchcity", searchCity)
+		/*
+		try {
+			searchCity = searchCity.replaceAll(",", " ");
+		} catch(Exception e) {}*/
+		
+		String query = //"FROM PlacesDB WHERE searchcity=:searchcity and idstr=:idstr";
+				"FROM PlacesDB WHERE idstr=:idstr";
+		PlacesDB place = (PlacesDB) entityManager.createQuery(query)//.setParameter("searchcity", searchCity)
 				.setParameter("idstr", placeID).getSingleResult();
 		if(place != null) {
 			place.setRating(newRate);
 			place.setMustSee(mustSee);
-			entityManager.persist(place);
+			entityManager.getTransaction().begin();
+			try {
+				entityManager.persist(place);
+			} catch(Exception e) {
+				return null;
+			}
+			entityManager.flush();
+			entityManager.getTransaction().commit();
 			return "Success";
 		} else {
 			return null;
 		}
 	}
 
+	
 	/**
-	 * JPA - Remove Place DB 
+	 * Users wants to remove Place from List
 	 */
 	@Override
 	@Transactional
-	public String removePlace(String searchCity, String placeID) throws IllegalArgumentException {
-		String query = "FROM places WHERE searchcity=:searchcity and idstr=:idstr";
-		PlacesDB place = (PlacesDB) entityManager.createQuery(query).setParameter("searchcity", searchCity)
+	public String removePlace(//String searchCity, 
+			String placeID) throws IllegalArgumentException {
+		/*
+		try {
+			searchCity = searchCity.replaceAll(",", " ");
+		} catch(Exception e) {}*/
+		
+		String query = //"FROM PlacesDB WHERE searchcity=:searchcity and idstr=:idstr";
+				"FROM PlacesDB WHERE idstr=:idstr";
+		PlacesDB place = (PlacesDB) entityManager.createQuery(query)//.setParameter("searchcity", searchCity)
 				.setParameter("idstr", placeID).getSingleResult();
 		if(place != null) {
-			entityManager.remove(place);
+			entityManager.getTransaction().begin();
+			try {
+				entityManager.remove(place);
+			} catch(Exception e) {
+				return null;
+			}
+			entityManager.flush();
+			entityManager.getTransaction().commit();
 			return "Success";
 		} else {
 			return null;
@@ -84,7 +135,9 @@ public class PlacesServiceImpl implements PlacesService {
 	}
 	
 	/**
-	 * Translation methods
+	 * Converts db pojos to objs
+	 * @param inputs
+	 * @return List of PlaceDBResults
 	 */
 	private List<PlaceDBResult> convertDBObjs(List<PlacesDB> inputs) {
 		List<PlaceDBResult> outputs = new ArrayList<PlaceDBResult>();
@@ -104,9 +157,11 @@ public class PlacesServiceImpl implements PlacesService {
 	}
 	
 	/**
-	 * Conversion methods
+	 * Converts objs to db pojos
+	 * @param inputs
+	 * @return List of PlacesDB
 	 */
-	private List<PlacesDB> convertObjDBs(List<PlaceDBResult> inputs, String searchCity) {
+	private List<PlacesDB> convertObjDBs(List<PlaceDBResult> inputs) {
 		List<PlacesDB> outputs = new ArrayList<PlacesDB>();
 		for(PlaceDBResult input : inputs) {
 			PlacesDB output = new PlacesDB();
@@ -116,7 +171,7 @@ public class PlacesServiceImpl implements PlacesService {
 			output.setName(input.getName());
 			output.setRating(input.getRating());
 			output.setReviewStr(input.getReviewStr());
-			output.setSearchcity(searchCity);
+			output.setSearchcity(input.getSearchcity());
 			output.setWebsite(input.getWebsite());
 			outputs.add(output);
 		}

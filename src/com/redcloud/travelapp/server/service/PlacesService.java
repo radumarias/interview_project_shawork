@@ -14,8 +14,10 @@ import com.redcloud.travelapp.shared.PlaceDBResult;
 public interface PlacesService {
 
 	public List<PlaceDBResult> fetchDBData(String searchCity) throws IllegalArgumentException;
-	public String saveDBData(String searchCity, List<PlaceDBResult> dbResults) throws IllegalArgumentException;
-	public String updateValues(String searchCity, String placeID, String newRate, String mustSee)
+	public String saveDBData(List<PlaceDBResult> dbResults) throws IllegalArgumentException;
+	public String updateValues(//String searchCity, 
+			String placeID, String newRate, String mustSee)
 			throws IllegalArgumentException;
-	public String removePlace(String searchCity, String placeID) throws IllegalArgumentException;
+	public String removePlace(//String searchCity, 
+			String placeID) throws IllegalArgumentException;
 }
