@@ -15,7 +15,7 @@ import javax.persistence.Table;
 @Entity
 @Table(name = "places")
 public class PlacesDB {
-	private Long id;
+	private Integer id;
 	private String userName;
 	private String password;
 	private String idstr;
@@ -51,7 +51,7 @@ public class PlacesDB {
 	public void setIcon(String icon) {
 		this.icon = icon;
 	}
-	@Column(name = "review")
+	@Column(name = "reviewstr")
 	public String getReviewStr() {
 		return reviewStr;
 	}
@@ -78,14 +78,15 @@ public class PlacesDB {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.AUTO)
-	public Long getId() {
+	@Column(name = "id")
+	public Integer getId() {
 		return id;
 	}
 
-	public void setId(Long id) {
+	public void setId(Integer id) {
 		this.id = id;
 	}
-
+	
 	@Column(name = "username")
 	public String getUserName() {
 		return userName;
@@ -128,6 +129,9 @@ public class PlacesDB {
 	 * @param idstr the idstr to set
 	 */
 	public void setSearchcity(String searchcity) {
+		try {
+			searchcity = searchcity.replaceAll(",", " ");
+		} catch(Exception e) {}
 		this.searchcity = searchcity;
 	}
 
