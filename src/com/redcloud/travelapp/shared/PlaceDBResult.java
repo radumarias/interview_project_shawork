@@ -7,6 +7,7 @@ import java.io.Serializable;
  */
 public class PlaceDBResult implements Serializable
 {
+	private static final long serialVersionUID = 1L;
 	// Important Attributes of the Places Model
 	private String idstr;
 	private String name;
@@ -75,6 +76,9 @@ public class PlaceDBResult implements Serializable
 	 * @param searchcity the searchcity to set
 	 */
 	public void setSearchcity(String searchcity) {
+		try {
+			searchcity = searchcity.replaceAll(",", " ");
+		} catch(Exception e) {}
 		this.searchcity = searchcity;
 	}
 
