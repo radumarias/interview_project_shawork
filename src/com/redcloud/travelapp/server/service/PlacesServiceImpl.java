@@ -37,7 +37,7 @@ public class PlacesServiceImpl implements PlacesService {
 			
 		}
 		try {
-			String query = "FROM PlacesDB WHERE searchcity=:searchcity";
+			String query = "FROM PlacesDB WHERE searchcity=:searchcity order by id asc ";
 			List<PlacesDB> dbResults = (List<PlacesDB>)entityManager.createQuery(query)
 					.setParameter("searchcity", searchCity).getResultList();
 			List<PlaceDBResult> results = convertDBObjs(dbResults);
@@ -151,6 +151,10 @@ public class PlacesServiceImpl implements PlacesService {
 			output.setReviewStr(input.getReviewStr());
 			output.setSearchcity(input.getSearchcity());
 			output.setWebsite(input.getWebsite());
+			output.setAddress(input.getAddress());
+			output.setPhotosURL(input.getPhotosURL());
+			output.setMyPhotosURL2(input.getMyPhotosURL2());
+			output.setType(input.getType());
 			outputs.add(output);
 		}
 		return outputs;
@@ -173,6 +177,10 @@ public class PlacesServiceImpl implements PlacesService {
 			output.setReviewStr(input.getReviewStr());
 			output.setSearchcity(input.getSearchcity());
 			output.setWebsite(input.getWebsite());
+			output.setAddress(input.getAddress());
+			output.setPhotosURL(input.getPhotosURL());
+			output.setMyPhotosURL2(input.getMyPhotosURL2());
+			output.setType(input.getType());
 			outputs.add(output);
 		}
 		return outputs;

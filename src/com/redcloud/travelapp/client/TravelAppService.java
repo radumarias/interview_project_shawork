@@ -32,4 +32,8 @@ public interface TravelAppService extends RemoteService {
 	 * Removes Place from DB for further listing
 	 */
 	String removePlace(String placeID) throws IllegalArgumentException;
+
+	//String getPlaceResponseJSON(double latitude, double longitude);
+
+	List<PlaceDBResult> getPlacesFromApi(String searchCity, double latitude, double longitude);
 }

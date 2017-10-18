@@ -30,4 +30,8 @@ public interface TravelAppServiceAsync {
 	 * Removes Place from DB for further listing
 	 */
 	void removePlace(String placeID, AsyncCallback<String> asyncCallback);
+
+	//void getPlaceResponseJSON(double latitude, double longitude, AsyncCallback<String> asyncCallback);
+
+	void getPlacesFromApi(String searchCity, double latitude, double longitude, AsyncCallback<List<PlaceDBResult>> callback);
 }

@@ -38,14 +38,17 @@ import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.DialogBox;
+import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.HasHorizontalAlignment;
 import com.google.gwt.user.client.ui.HasVerticalAlignment;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Label;
+import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.Widget;
+import com.redcloud.travelapp.client.widgets.PlaceTile;
 import com.redcloud.travelapp.shared.PlaceDBResult;
 
 /**
@@ -56,30 +59,35 @@ import com.redcloud.travelapp.shared.PlaceDBResult;
  */
 public class TravelApp implements EntryPoint {
 
-	TextBox mySearchBox;
-	private Autocomplete mySearchCity;
+	private TextBox mySearchBox;
 	private VerticalPanel myDisplayPanel;
-
+    private ListBox myFilterDropBox;
+    private List<PlaceTile> myValidTiles;
+    
 	/**
 	 * Remote Service Proxy
 	 */
 	private final TravelAppServiceAsync myTravelAppService = GWT.create(TravelAppService.class);
 
+	//private TravelMap myMap;
 	/**
 	 * The main method of execution On Load of Module
 	 */
 	public void onModuleLoad() {
+		
 		VerticalPanel topPanel = createPanel();
+		myDisplayPanel = new VerticalPanel();
+		myValidTiles = new ArrayList<PlaceTile>();
+	
 		HorizontalPanel mainPanel = new HorizontalPanel();
 		mainPanel.setSpacing(10);
-		myDisplayPanel = new VerticalPanel();
 		mainPanel.add(myDisplayPanel);
-
 		topPanel.add(mainPanel);
 		topPanel.setSpacing(10);
 		RootPanel.get().add(topPanel);
 	}
 
+	
 	/**
 	 * Creates Main Panel
 	 * @return
@@ -92,8 +100,10 @@ public class TravelApp implements EntryPoint {
 		hPanel.add(new Label("Enter City : "));
 
 		mySearchBox = new TextBox();
-
 		boolean sensor = false;
+		/**
+		 * AutoComplete Search Text functionality
+		 */
 		ArrayList<LoadLibrary> loadLibraries = new ArrayList<LoadApi.LoadLibrary>();
 		loadLibraries.add(LoadLibrary.PLACES);
 		LoadApi.go(new Runnable() {
@@ -112,11 +122,22 @@ public class TravelApp implements EntryPoint {
 		}, loadLibraries, sensor);
 
 		hPanel.add(mySearchBox);
-
 		Button searchButton = new Button("Near By Places");
 		hPanel.add(searchButton);
+		
+		// Filters Section
+		myFilterDropBox = new ListBox(false);
+	    List<String> listTypes = getPlaceTypeCategories();
+	    for (String listType : listTypes) {
+	      myFilterDropBox.addItem(listType);
+	    }
+	    hPanel.add(new Label("Place Type : "));
+	    hPanel.add(myFilterDropBox);
+	    Button filterButton = new Button("Apply Filter");
+		hPanel.add(filterButton);
 		vPanel.add(hPanel);
 
+		// Listeners Module
 		mySearchBox.addKeyUpHandler(new KeyUpHandler() {
 			public void onKeyUp(KeyUpEvent event) {
 				if (event.getNativeKeyCode() == KeyCodes.KEY_ENTER) {
@@ -130,10 +151,13 @@ public class TravelApp implements EntryPoint {
 				displayPlacesInfo(mySearchBox.getText());
 			}
 		});
-
-		myDisplayPanel = new VerticalPanel();
+		filterButton.addClickListener(new ClickListener() {
+			@Override
+			public void onClick(Widget sender) {
+				applyMainFilter();
+			}
+		});
 		return vPanel;
-
 	}
 
 	/**
@@ -143,6 +167,7 @@ public class TravelApp implements EntryPoint {
 	private void displayPlacesInfo(final String searchCityStr) {
 		try {
 			myDisplayPanel.clear();
+			myValidTiles.clear();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -150,87 +175,22 @@ public class TravelApp implements EntryPoint {
 		// RETRIEVES DATA IF PRESENT IN DB
 		myTravelAppService.fetchDBData(searchCityStr, new AsyncCallback<List<PlaceDBResult>>() {
 			public void onFailure(Throwable caught) {
+				GWT.log("Data not present in DB, so fetching from API..");
 				fetchFromApi(searchCityStr);
+				applyMainFilter();
 			}
 
 			public void onSuccess(List<PlaceDBResult> results) {
-				{
-					if (results != null && results.size() > 0) {
-						for (int i = 0; i < results.size(); i++) {
-							PlaceDBResult result = (PlaceDBResult) results.get(i);
-							String resultStr = result.getName() + "<br/>" + "<a href=\"" + result.getWebsite()
-									+ "\" /> Website </a><br/>"
-							// result.getIcon() +
-							//		+ "(Reviews : " + result.getReviewStr() + ") " 
-							+ result.getReviewStr() + " " + result.getRating();
-
-							VerticalPanel vpanel = new VerticalPanel();
-							String imageIcon = result.getIcon();
-
-							Button button = new Button();
-							String url = imageIcon;
-							String html = "<div><center><img src = '" + url + "'></img></center><label>" + resultStr
-									+ "</label></br></div>";
-
-							button.setHTML(html);
-							vpanel.add(button);
-							button.setSize("400px", "200px");
-
-							final PlaceDBResult presult = result;
-							button.addClickListener(new ClickListener() {
-
-								@Override
-								public void onClick(Widget sender) {
-									onPlaceClick(searchCityStr, presult.getIdstr(), 
-											presult.getName(), presult.getRating(), 
-											presult.getReviewStr());
-								}
-							});
-							myDisplayPanel.add(vpanel);
-
-						}
-					} else {
-						fetchFromApi(searchCityStr);
+				GWT.log("Success fetching Data from DB..");
+				if (results != null && results.size() > 0) {
+					for (int i = 0; i < results.size(); i++) {
+						addToDisplay(results.get(i), searchCityStr);
 					}
-
+				} else {
+					GWT.log("No results found in DB, fetching from API..");
+					fetchFromApi(searchCityStr);
 				}
-			}
-		});
-	}
-
-	/**
-	 * Updates Respective Values
-	 * @param searchCity
-	 * @param placeID
-	 * @param newRate
-	 * @param mustSee
-	 */
-	private void updateValues(final String searchCity, String placeID, String newRate, boolean mustSee) {
-		String mustSeeStr = mustSee ? "Y" : "N";
-		myTravelAppService.updateValues(placeID, newRate, mustSeeStr, new AsyncCallback<String>() {
-			public void onFailure(Throwable caught) {
-				//Window.alert("Error while Updating values..");
-			}
-			public void onSuccess(String str) {
-				Window.alert("Success Saving Values");
-				displayPlacesInfo(searchCity);
-			}
-		});
-	}
-
-	/**
-	 * Removes Places
-	 * @param searchCity
-	 * @param placeID
-	 */
-	private void removePlace(final String searchCity, String placeID) {
-		myTravelAppService.removePlace(placeID, new AsyncCallback<String>() {
-			public void onFailure(Throwable caught) {
-				//Window.alert("Error while Removing Place..");
-			}
-			public void onSuccess(String str) {
-				Window.alert("Success Removing Place");
-				displayPlacesInfo(searchCity);
+				applyMainFilter();
 			}
 		});
 	}
@@ -252,16 +212,245 @@ public class TravelApp implements EntryPoint {
 					for (int i = 0; i < results.length(); i++) {
 						GeocoderResult result = results.get(i);
 						JsArray<GeocoderAddressComponent> components = result.getAddress_Components();
-						int len = components.length();
-						String address = result.getFormatted_Address();
 						GeocoderGeometry geo = result.getGeometry();
-						searchRequest(geo.getLocation(), searchCity);
+						
+						// Fetches Places Info from API
+						myTravelAppService.getPlacesFromApi(searchCity, geo.getLocation().getLatitude(), geo.getLocation().getLongitude(), 
+								new AsyncCallback<List<PlaceDBResult>>() {
+							public void onFailure(Throwable caught) {
+								GWT.log("Requesting Places from API of Places Search..");
+							}
+							@Override
+							public void onSuccess(List<PlaceDBResult> results) {
+								if(results != null && results.size() > 0) {
+									try {
+										for(PlaceDBResult result : results) {
+											addToDisplay(result, searchCity);
+										}
+									} catch(Exception e) {
+										e.printStackTrace();
+									}
+								}
+								
+								// Persist to DB - creation
+								GWT.log("Persisting to DB");
+								myTravelAppService.saveDBData(results, new AsyncCallback<String>() {
+									public void onFailure(Throwable caught) {
+										GWT.log("Error saving to DB");
+									}
+									public void onSuccess(String str) {
+										GWT.log("success saving to DB");
+									}
+								});
+
+							}});
+						//searchRequest(geo.getLocation(), searchCity);
 					}
 				}
 			}
 		});
 	}
 
+	/**
+	 * GUI Display Code
+	 * @param result
+	 * @param searchCityStr
+	 */
+	private void addToDisplay(PlaceDBResult result, final String searchCityStr) {
+		
+		VerticalPanel vpanel = new VerticalPanel();
+		PlaceTile tile = new PlaceTile(result);
+		vpanel.add(tile);
+		myValidTiles.add(tile);
+		myDisplayPanel.add(vpanel);
+
+		final PlaceDBResult presult = result;
+		tile.addClickListener(new ClickListener() {
+			@Override
+			public void onClick(Widget sender) {
+				onPlaceClick(presult, searchCityStr);
+			}
+		});
+		
+	}
+	/**
+	 * On Clicking Place Tile
+	 * @param searchCityStr
+	 * @param placeid
+	 * @param pName
+	 * @param rating
+	 * @param reviewCnt
+	 */
+	private void onPlaceClick(final PlaceDBResult presult, final String searchCityStr) {
+
+		final String placeid = presult.getIdstr();
+		String pName = presult.getName();
+		String rating = presult.getRating();
+		//String reviewCntStr = presult.getReviewStr();
+		
+		final DialogBox dialog = new DialogBox();
+		VerticalPanel vdPanel = new VerticalPanel();
+		vdPanel.add(new Label(pName));
+		
+		String url = getAPIURL(presult.getMyPhotosURL2() == null ? 
+				presult.getPhotosURL() : presult.getMyPhotosURL2());
+		String description = presult.getAddress();
+		String html = 
+			"<div><center>"
+				+ "<img src = '" + url + "'  height=\"150\" width=\"300\"></img>"
+				//+ "</br><p>" + description + "</p></br>"
+			+ "</center></div>";
+		
+		vdPanel.add(new HTML(html));
+		vdPanel.add(new HTML(description));
+		HorizontalPanel hRatePanel = new HorizontalPanel();
+		hRatePanel.add(new Label("Ratings : "));
+		final TextBox rateBox = new TextBox();
+		rateBox.setText(rating + "");
+		hRatePanel.add(rateBox);
+		vdPanel.add(hRatePanel);
+
+		HorizontalPanel mustSeePanel = new HorizontalPanel();
+		final CheckBox cb = new CheckBox("Must See");
+		cb.setValue(presult.getMustSee() != null && presult.getMustSee().equalsIgnoreCase("Y"));
+		mustSeePanel.add(cb);
+		vdPanel.add(mustSeePanel);
+
+		dialog.setModal(true);
+		dialog.setText("PLACE DETAILS");
+		dialog.setAnimationEnabled(true);
+		dialog.setGlassEnabled(true);
+		
+		// Important Buttons & Functionalities
+		Button closeButton = new Button("Close");
+		closeButton.addClickListener(new ClickListener() {
+			@Override
+			public void onClick(Widget sender) {
+				dialog.hide();
+			}
+		});
+		
+		Button saveButton = new Button("Save");
+		saveButton.addClickListener(new ClickListener() {
+			@Override
+			public void onClick(Widget sender) {
+				String newRate = rateBox.getValue();
+				boolean mustSee = cb.isChecked();
+				String pid = placeid;
+				String mustSeeStr = mustSee ? "Y" : "N";
+				myTravelAppService.updateValues(pid, newRate, mustSeeStr, new AsyncCallback<String>() {
+					public void onFailure(Throwable caught) {
+						Window.alert("Error while Updating values..");
+					}
+					public void onSuccess(String str) {
+						dialog.hide();
+						Window.alert("Success Saving Values for the Place.");
+						displayPlacesInfo(searchCityStr);
+					}
+				});
+				
+			}
+		});
+
+		Button removeButton = new Button("Remove");
+		removeButton.addClickListener(new ClickListener() {
+			@Override
+			public void onClick(Widget sender) {
+				String pid = placeid;
+				//removePlace(searchCityStr, pid);
+				myTravelAppService.removePlace(pid, new AsyncCallback<String>() {
+					public void onFailure(Throwable caught) {
+						Window.alert("Error while Removing Place..");
+					}
+					public void onSuccess(String str) {
+						dialog.hide();
+						Window.alert("Success Removing Place from List.");
+						displayPlacesInfo(searchCityStr);
+					}
+				});
+			}
+		});
+
+		HorizontalPanel buttonPanel = new HorizontalPanel();
+		buttonPanel.setSpacing(8);
+		buttonPanel.setHorizontalAlignment(HasHorizontalAlignment.ALIGN_CENTER);
+		buttonPanel.add(saveButton);
+		buttonPanel.add(removeButton);
+		buttonPanel.add(closeButton);
+		vdPanel.setSpacing(6);
+		vdPanel.setVerticalAlignment(HasVerticalAlignment.ALIGN_MIDDLE);
+		vdPanel.add(buttonPanel);
+		dialog.add(vdPanel);
+		dialog.show();
+		dialog.center();
+	}
+	
+	/**
+	 * Available Place Types
+	 * @return
+	 */
+	private List<String> getPlaceTypeCategories() {
+		ArrayList<String> placeTypes = new ArrayList<String>();
+		placeTypes.add("ALL".toString().toUpperCase());
+		placeTypes.add("RV_PARK"); 
+		placeTypes.add("CAMPGROUND");
+		placeTypes.add("PARK");
+		placeTypes.add("LODGING"); 
+		placeTypes.add("POINT_OF_INTEREST"); 
+		placeTypes.add("SPA"); 
+		placeTypes.add("PREMISE"); 
+		placeTypes.add("SCHOOL"); 
+		placeTypes.add("HEALTH"); 
+		placeTypes.add("STORE"); 
+		placeTypes.add("BAR"); 
+		placeTypes.add("REAL_ESTATE_AGENCY"); 
+		placeTypes.add("UNIVERSITY"); 
+		placeTypes.add("RESTAURANT"); 
+		placeTypes.add("FOOD"); 
+		//placeTypes.add("AMUSEMENT_PARK".toString().toUpperCase()); 
+		//placeTypes.add("AQUARIUM".toString().toUpperCase()); 
+		//placeTypes.add("CASINO".toString().toUpperCase());
+		//placeTypes.add("CITY_HALL".toString().toUpperCase()); 
+		placeTypes.add("ESTABLISHMENT".toString().toUpperCase()); 
+		//placeTypes.add("MUSEUM".toString().toUpperCase());
+		//placeTypes.add("ZOO".toString().toUpperCase());
+		return placeTypes;
+	}
+
+	/**
+	 * Returns API URL of Photo
+	 * @param photoReference
+	 * @return String
+	 */
+	private String getAPIURL(String photoReference) {
+		String apiURL = "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference="
+				+ (photoReference != null ? photoReference.trim() : "")
+				+ "&key=AIzaSyD8FBX-lagxh6nHtoNk3sPdfUMRVL7Tp9E";
+		return apiURL;
+	}	
+	
+	/**
+	 * Applies Place Filter per tile
+	 * @param filterText
+	 */
+	private void applyMainFilter() {
+		try {
+			String filterText = myFilterDropBox.getSelectedItemText();
+			for(PlaceTile tile : myValidTiles) {
+				try {
+					tile.setVisible(tile.getPlaceType().contains(filterText) || 
+							filterText.equalsIgnoreCase("ALL"));
+				} catch(Exception e) {
+					e.printStackTrace();
+				}
+			}
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/////////////////////////////////////////////////////////////////////////////////////////
+	
 	/**
 	 * Convert to DB instance
 	 * @param result
@@ -284,13 +473,13 @@ public class TravelApp implements EntryPoint {
 		}
 		return pdrb;
 	}
-
+	
 	/**
 	 * Search Request
 	 * @param clickLocation
 	 * @param searchCityStr
 	 */
-	private void searchRequest(LatLng clickLocation, final String searchCityStr) {
+	private void searchRequest(final LatLng clickLocation, final String searchCityStr) {
 		String[] types = new String[1];
 		types[0] = "point_of_interest";
 		types[1] = "establishment";
@@ -317,7 +506,7 @@ public class TravelApp implements EntryPoint {
 								result.setId(uniqueId);
 							}
 							String reference = result.getReference();
-							getPlaceDetails(reference, searchCityStr);
+							getPlaceDetails(reference, searchCityStr, clickLocation);
 
 							String json = new JSONObject(result).toString();
 							GWT.log("details=" + json);
@@ -329,14 +518,14 @@ public class TravelApp implements EntryPoint {
 						}
 
 						// Persist to DB - creation
-						System.out.println("Persisting to DB");
+						GWT.log("Persisting to DB");
 						myTravelAppService.saveDBData(dbResults, new AsyncCallback<String>() {
 							public void onFailure(Throwable caught) {
-								System.out.println("Error saving to DB");
+								GWT.log("Error saving to DB");
 							}
 
 							public void onSuccess(String str) {
-								System.out.println("success saving to DB");
+								GWT.log("success saving to DB");
 							}
 						});
 
@@ -344,10 +533,9 @@ public class TravelApp implements EntryPoint {
 				} else {
 				}
 			}
-
 		});
 	}
-
+	
 	/**
 	 * Gets the Map Place's Details
 	 * @param reference
@@ -357,17 +545,17 @@ public class TravelApp implements EntryPoint {
 			return;
 		}
 	}
-
+	
 	/**
 	 * Fetches Places Details
 	 * @param reference
 	 * @param searchCityStr
 	 */
-	private void getPlaceDetails(String reference, final String searchCityStr) {
+	private void getPlaceDetails(String reference, final String searchCityStr, final LatLng location) {
 		if (reference == null || reference.isEmpty()) {
 			return;
 		}
-
+		
 		PlacesService placeService = PlacesService.newInstance(mySearchBox.getElement());// mapWidget);
 		PlaceDetailsRequest request = PlaceDetailsRequest.newInstance();
 		request.setReference(reference);
@@ -398,99 +586,19 @@ public class TravelApp implements EntryPoint {
 
 						@Override
 						public void onClick(Widget sender) {
-							onPlaceClick(searchCityStr, presult.getId(), 
+							/*onPlaceClick(searchCityStr, presult.getId(), 
 									presult.getName(), presult.getRating()+"", 
 									(presult.getReviews() == null 
-										? 0 : presult.getReviews().length()) + "");
+										? 0 : presult.getReviews().length()) + "");*/
 						}
 					});
 					myDisplayPanel.add(vpanel);
 
 				} else {
 					String json = new JSONObject(result).toString();
-					System.out.println("details=" + json);
+					GWT.log("details=" + json);
 				}
 			}
 		});
-	}
-
-	/**
-	 * On Clicking Place Tile
-	 * @param searchCityStr
-	 * @param placeid
-	 * @param pName
-	 * @param rating
-	 * @param reviewCnt
-	 */
-	private void onPlaceClick(final String searchCityStr, final String placeid, 
-			String pName, String rating, String reviewCntStr) {
-
-		// TODO Auto-generated method stub
-		final DialogBox dialog = new DialogBox();
-		VerticalPanel vdPanel = new VerticalPanel();
-		vdPanel.add(new Label(pName));
-		vdPanel.add(new Label("(Reviews : " + reviewCntStr + ") "));
-
-		HorizontalPanel hRatePanel = new HorizontalPanel();
-		hRatePanel.add(new Label("Ratings : "));
-		final TextBox rateBox = new TextBox();
-		rateBox.setText(rating + "");
-		hRatePanel.add(rateBox);
-		vdPanel.add(hRatePanel);
-
-		HorizontalPanel mustSeePanel = new HorizontalPanel();
-		final CheckBox cb = new CheckBox("Must See");
-		cb.setValue(false);
-		mustSeePanel.add(cb);
-		vdPanel.add(mustSeePanel);
-
-		Button closeButton = new Button("Close");
-		closeButton.addClickListener(new ClickListener() {
-
-			@Override
-			public void onClick(Widget sender) {
-				// TODO Auto-generated method stub
-				dialog.hide();
-			}
-		});
-
-		Button saveButton = new Button("Save");
-		saveButton.addClickListener(new ClickListener() {
-
-			@Override
-			public void onClick(Widget sender) {
-				// TODO Auto-generated method stub
-				String newRate = rateBox.getValue();
-				boolean mustSee = cb.isChecked();
-				// Save these values in DB
-				String pid = placeid;
-				updateValues(searchCityStr, pid, newRate, mustSee);
-			}
-		});
-		Button removeButton = new Button("Remove");
-		removeButton.addClickListener(new ClickListener() {
-
-			@Override
-			public void onClick(Widget sender) {
-				// TODO Auto-generated method stub
-				// Remove this entry from DB
-				String pid = placeid;
-				removePlace(searchCityStr, pid);
-			}
-		});
-
-		HorizontalPanel buttonPanel = new HorizontalPanel();
-		buttonPanel.setSpacing(2);
-		buttonPanel.setHorizontalAlignment(HasHorizontalAlignment.ALIGN_CENTER);
-		buttonPanel.add(saveButton);
-		buttonPanel.add(closeButton);
-		buttonPanel.add(removeButton);
-		vdPanel.setSpacing(2);
-		vdPanel.setVerticalAlignment(HasVerticalAlignment.ALIGN_MIDDLE);
-		vdPanel.add(buttonPanel);
-		dialog.add(vdPanel);
-		dialog.show();
-		dialog.center();
-	
 	}
 }

@@ -11,12 +11,18 @@ public class PlaceDBResult implements Serializable
 	// Important Attributes of the Places Model
 	private String idstr;
 	private String name;
+	private String myPhotosURL;
+	private String myPhotosURL2;
+	private String type;
+	private String rating;
+	private String mustSee;
+	private String myAddress;
+	private String searchcity;
+	
+	// Not Mandatory
 	private String website;
 	private String icon;
 	private String reviewStr;
-	private String rating;
-	private String mustSee;
-	private String searchcity;
 	
 	public String getName() {
 		return name;
@@ -80,6 +86,31 @@ public class PlaceDBResult implements Serializable
 			searchcity = searchcity.replaceAll(",", " ");
 		} catch(Exception e) {}
 		this.searchcity = searchcity;
+	}
+	
+	public void setAddress(String address) {
+		myAddress = address;
+	}
+	public void setPhotosURL(String photosURL) {
+		myPhotosURL = photosURL;
+	}
+	public String getAddress() {
+		return myAddress;
+	}
+	public String getPhotosURL() {
+		return myPhotosURL;
+	}
+	public String getType() {
+		return type;
+	}
+	public void setType(String type) {
+		this.type = type;
+	}
+	public String getMyPhotosURL2() {
+		return myPhotosURL2;
+	}
+	public void setMyPhotosURL2(String myPhotosURL2) {
+		this.myPhotosURL2 = myPhotosURL2;
 	}
 
 }

@@ -26,6 +26,10 @@ public class PlacesDB {
 	private String rating;
 	private String mustSee;
 	private String searchcity;
+	private String myAddress;
+	private String myPhotosURL;
+	private String myPhotosURL2;
+	private String type;
 	
 	@Column(name = "name")
 	public String getName() {
@@ -133,6 +137,48 @@ public class PlacesDB {
 			searchcity = searchcity.replaceAll(",", " ");
 		} catch(Exception e) {}
 		this.searchcity = searchcity;
+	}
+
+	@Column(name = "address")
+	public String getAddress() {
+		return myAddress;
+	}
+
+	@Column(name = "photosurl")
+	public String getPhotosURL() {
+		return myPhotosURL;
+	}
+
+	public void setPhotosURL(String photosURL) {
+		myPhotosURL = photosURL;
+	}
+
+	public void setAddress(String address) {
+		myAddress = address;
+	}
+
+	/**
+	 * @return the type
+	 */
+	@Column(name = "type")
+	public String getType() {
+		return type;
+	}
+
+	/**
+	 * @param type the type to set
+	 */
+	public void setType(String type) {
+		this.type = type;
+	}
+
+	@Column(name = "photosurl2")
+	public String getMyPhotosURL2() {
+		return myPhotosURL2;
+	}
+
+	public void setMyPhotosURL2(String myPhotosURL2) {
+		this.myPhotosURL2 = myPhotosURL2;
 	}
 
 }
